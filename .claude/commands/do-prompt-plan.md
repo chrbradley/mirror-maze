@@ -12,8 +12,9 @@
 
 3. After you finish each prompt, get feed back from the user:
     - summarize changes made
-    - run the app and provide manual testing instructions if applicable
-    - ask the user to confirm application is building and working as expected
+    - summarize new expected behavior
+    - provide manual testing instructions if applicable
+    - ask the user to run the app and  confirm application is building and working as expected
     - if they confirm, continue
 
 4. After user confirms application is functioning as expected.

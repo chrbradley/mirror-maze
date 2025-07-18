@@ -56,10 +56,14 @@
    - Implemented "Fire!" button (disabled in sandbox mode)
    - Canvas height increased to 720px to accommodate controls
 
-10. **Step 10: Implement Ray-Line Intersection**
-    - Ray type definition
-    - Line segment intersection math
-    - Wall segment detection
+10. **Step 10: Ray-Line Intersection** ✅
+    - Created src/core/geometry.ts
+    - Defined Ray type with origin and direction
+    - Defined LineSegment type for walls
+    - Implemented rayLineIntersection using parametric equations
+    - Created getRoomWallSegments for active mirrors
+    - Added getAllActiveWallSegments for full grid
+    - Handled edge cases (parallel rays, epsilon tolerance)
 
 11. **Step 11: Method of Images Algorithm**
     - computeVirtualTarget function
