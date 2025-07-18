@@ -2,7 +2,7 @@
 // ABOUTME: Determines mirror sequences and integrates with Method of Images
 
 import type { RoomCoord, Point2D } from './coordinates'
-import { roomToCanvas, getMirroredRoomPoint } from './coordinates'
+import { roomToCanvas, getMirroredRoomPoint, isRoomFlippedX, isRoomFlippedY } from './coordinates'
 import type { MirrorReflection, RayPath } from './raytrace'
 import { computeReflectionPath } from './raytrace'
 import type { Mirror, WallPosition } from './mirrors'
@@ -67,8 +67,12 @@ export class RayPathCalculator {
     const objectLocalPos = object.position
     const receptorLocalPos = receptor.position
     
+    // Get room flipping flags
+    const flipX = isRoomFlippedX(homeRoom.col)
+    const flipY = isRoomFlippedY(homeRoom.row)
+    
     // Trace ray within the room
-    const segments = traceRayInRoom(objectLocalPos, receptorLocalPos, homeMirrors)
+    const segments = traceRayInRoom(objectLocalPos, receptorLocalPos, homeMirrors, 5, flipX, flipY)
     
     // Convert to canvas coordinates for rendering
     const homeRoomMirrored = getMirroredRoomPoint(homeRoom, { x: 0, y: 0 })
