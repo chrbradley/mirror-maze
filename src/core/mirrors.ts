@@ -7,6 +7,7 @@ import type { RoomCoord } from './coordinates'
 import { COLORS, STROKE_WEIGHTS } from '../ui/theme'
 import { ROOM_WIDTH, ROOM_HEIGHT, GRID_ROWS, GRID_COLS } from './grid'
 import { HomeRoomManager } from './home-room-manager'
+import { TargetRoomManager } from './target-room-manager'
 
 export type WallPosition = 'N' | 'S' | 'E' | 'W'
 export type MirrorState = 'disabled' | 'off' | 'on'
@@ -51,7 +52,10 @@ export class MirrorManager {
   private mirrors: Mirror[] = []
   private wallStates: Map<WallPosition, MirrorState> = new Map()
   
-  constructor(private homeRoomManager: HomeRoomManager) {
+  constructor(
+    private homeRoomManager: HomeRoomManager,
+    private targetRoomManager?: TargetRoomManager
+  ) {
     this.initializeMirrors()
     this.initializeWallStates()
     
@@ -62,7 +66,18 @@ export class MirrorManager {
     this.homeRoomManager.addListener((newHomeRoom) => {
       this.transferWallStates(previousHomeRoom, newHomeRoom)
       previousHomeRoom = newHomeRoom
+      this.autoEnableRequiredMirrors()
     })
+    
+    // Listen for target room changes
+    if (this.targetRoomManager) {
+      this.targetRoomManager.addListener(() => {
+        this.autoEnableRequiredMirrors()
+      })
+    }
+    
+    // Enable mirrors for initial configuration
+    this.autoEnableRequiredMirrors()
   }
   
   private initializeMirrors() {
@@ -268,5 +283,56 @@ export class MirrorManager {
     const dy = point.y - yy
     
     return Math.sqrt(dx * dx + dy * dy)
+  }
+  
+  // Auto-enable mirrors needed to reach target room
+  private autoEnableRequiredMirrors() {
+    if (!this.targetRoomManager) return
+    
+    const homeRoom = this.homeRoomManager.getCurrentHomeRoom()
+    const targetRoom = this.targetRoomManager.getCurrentTargetRoom()
+    
+    // Reset all home room mirrors to 'off'
+    const homeMirrors = this.mirrors.filter(m => 
+      m.room.row === homeRoom.row && 
+      m.room.col === homeRoom.col &&
+      m.state !== 'disabled'
+    )
+    
+    for (const mirror of homeMirrors) {
+      mirror.state = 'off'
+    }
+    
+    // Calculate which mirrors to enable
+    const rowDiff = targetRoom.row - homeRoom.row
+    const colDiff = targetRoom.col - homeRoom.col
+    
+    // Enable mirrors based on direction to target
+    if (colDiff > 0) {
+      // Target is to the right - enable East mirror
+      const eastMirror = homeMirrors.find(m => m.wall === 'E')
+      if (eastMirror) eastMirror.state = 'on'
+    } else if (colDiff < 0) {
+      // Target is to the left - enable West mirror
+      const westMirror = homeMirrors.find(m => m.wall === 'W')
+      if (westMirror) westMirror.state = 'on'
+    }
+    
+    if (rowDiff > 0) {
+      // Target is below - enable South mirror
+      const southMirror = homeMirrors.find(m => m.wall === 'S')
+      if (southMirror) southMirror.state = 'on'
+    } else if (rowDiff < 0) {
+      // Target is above - enable North mirror
+      const northMirror = homeMirrors.find(m => m.wall === 'N')
+      if (northMirror) northMirror.state = 'on'
+    }
+    
+    // Update saved wall states
+    for (const mirror of homeMirrors) {
+      if (mirror.state !== 'disabled') {
+        this.wallStates.set(mirror.wall, mirror.state)
+      }
+    }
   }
 }

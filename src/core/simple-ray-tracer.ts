@@ -20,14 +20,62 @@ export function traceRayInRoom(
   // Filter to only active mirrors
   const activeMirrors = roomMirrors.filter(m => m.state === 'on')
   
-  // If no active mirrors or same position, return direct path
+  // If no active mirrors, return direct path
   if (activeMirrors.length === 0) {
     return [{ start: objectPos, end: receptorPos }]
   }
   
-  // For now, just return direct path
-  // TODO: Implement proper ray bouncing
-  return [{ start: objectPos, end: receptorPos }]
+  // Use Method of Images: reflect receptor position through each active mirror
+  let virtualReceptor = { ...receptorPos }
+  const mirrorSequence: string[] = []
+  
+  // Apply reflections in a specific order (for consistent results)
+  // Order: West, East, North, South
+  const orderedWalls = ['W', 'E', 'N', 'S']
+  
+  for (const wall of orderedWalls) {
+    const mirror = activeMirrors.find(m => m.wall === wall)
+    if (mirror) {
+      virtualReceptor = reflectPointAcrossWall(virtualReceptor, wall)
+      mirrorSequence.push(wall)
+    }
+  }
+  
+  // Now trace from object to virtual receptor
+  const segments: RaySegment[] = []
+  let currentPos = { ...objectPos }
+  
+  // Cast ray toward virtual receptor
+  const dx = virtualReceptor.x - currentPos.x
+  const dy = virtualReceptor.y - currentPos.y
+  const totalDist = Math.sqrt(dx * dx + dy * dy)
+  
+  if (totalDist < 0.001) {
+    return [{ start: objectPos, end: receptorPos }]
+  }
+  
+  const dir = { x: dx / totalDist, y: dy / totalDist }
+  
+  // Trace through each mirror in reverse order
+  for (let i = mirrorSequence.length - 1; i >= 0; i--) {
+    const wall = mirrorSequence[i]
+    const t = rayWallIntersection(currentPos, dir, wall)
+    
+    if (t > 0.001) {
+      const hitPoint = {
+        x: currentPos.x + t * dir.x,
+        y: currentPos.y + t * dir.y
+      }
+      
+      segments.push({ start: currentPos, end: hitPoint })
+      currentPos = { ...hitPoint }
+    }
+  }
+  
+  // Final segment to receptor
+  segments.push({ start: currentPos, end: receptorPos })
+  
+  return segments
 }
 
 // Reflect a point across a wall
