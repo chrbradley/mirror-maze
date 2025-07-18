@@ -161,7 +161,7 @@ Build the mirror toggle system. Implement:
 Test: Clicking walls should cycle through three visual states with different thicknesses.
 ```
 
-### Step 9: UI Controls
+### Step 9: UI Controls ✅
 
 ```text
 Create the control panel UI. Build:

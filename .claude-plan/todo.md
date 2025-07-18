@@ -47,10 +47,14 @@
 
 ## Remaining Steps 📋
 
-9. **Step 9: Create UI Controls**
-   - Bounce count slider (0-5)
-   - Mode switcher (Sandbox/Challenge)
-   - "Fire!" button
+9. **Step 9: UI Controls** ✅
+   - Created src/ui/controls.ts
+   - Added bounce count slider (0-5) below the grid
+   - Styled slider with retro theme
+   - Added visual indicator showing current bounce value
+   - Created mode switcher between Sandbox and Challenge
+   - Implemented "Fire!" button (disabled in sandbox mode)
+   - Canvas height increased to 720px to accommodate controls
 
 10. **Step 10: Implement Ray-Line Intersection**
     - Ray type definition
