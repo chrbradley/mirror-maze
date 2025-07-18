@@ -25,57 +25,46 @@ export function traceRayInRoom(
     return [{ start: objectPos, end: receptorPos }]
   }
   
-  // Use Method of Images: reflect receptor position through each active mirror
-  let virtualReceptor = { ...receptorPos }
-  const mirrorSequence: string[] = []
-  
-  // Apply reflections in a specific order (for consistent results)
-  // Order: West, East, North, South
-  const orderedWalls = ['W', 'E', 'N', 'S']
-  
-  for (const wall of orderedWalls) {
-    const mirror = activeMirrors.find(m => m.wall === wall)
-    if (mirror) {
-      virtualReceptor = reflectPointAcrossWall(virtualReceptor, wall)
-      mirrorSequence.push(wall)
+  // Simple case: single East mirror
+  if (activeMirrors.length === 1 && activeMirrors[0].wall === 'E') {
+    // Calculate virtual receptor position by reflecting across East wall
+    const virtualReceptor = {
+      x: 2 * ROOM_WIDTH - receptorPos.x,
+      y: receptorPos.y
     }
-  }
-  
-  // Now trace from object to virtual receptor
-  const segments: RaySegment[] = []
-  let currentPos = { ...objectPos }
-  
-  // Cast ray toward virtual receptor
-  const dx = virtualReceptor.x - currentPos.x
-  const dy = virtualReceptor.y - currentPos.y
-  const totalDist = Math.sqrt(dx * dx + dy * dy)
-  
-  if (totalDist < 0.001) {
-    return [{ start: objectPos, end: receptorPos }]
-  }
-  
-  const dir = { x: dx / totalDist, y: dy / totalDist }
-  
-  // Trace through each mirror in reverse order
-  for (let i = mirrorSequence.length - 1; i >= 0; i--) {
-    const wall = mirrorSequence[i]
-    const t = rayWallIntersection(currentPos, dir, wall)
     
-    if (t > 0.001) {
+    // Cast ray from object toward virtual receptor
+    const dx = virtualReceptor.x - objectPos.x
+    const dy = virtualReceptor.y - objectPos.y
+    const length = Math.sqrt(dx * dx + dy * dy)
+    
+    if (length < 0.001) {
+      return [{ start: objectPos, end: receptorPos }]
+    }
+    
+    const dir = { x: dx / length, y: dy / length }
+    
+    // Find intersection with East wall
+    const t = (ROOM_WIDTH - objectPos.x) / dir.x
+    
+    if (t > 0 && t * Math.abs(dir.y) < ROOM_HEIGHT) {
       const hitPoint = {
-        x: currentPos.x + t * dir.x,
-        y: currentPos.y + t * dir.y
+        x: ROOM_WIDTH,
+        y: objectPos.y + t * dir.y
       }
       
-      segments.push({ start: currentPos, end: hitPoint })
-      currentPos = { ...hitPoint }
+      // Ensure hit point is within room bounds
+      if (hitPoint.y >= 0 && hitPoint.y <= ROOM_HEIGHT) {
+        return [
+          { start: objectPos, end: hitPoint },
+          { start: hitPoint, end: receptorPos }
+        ]
+      }
     }
   }
   
-  // Final segment to receptor
-  segments.push({ start: currentPos, end: receptorPos })
-  
-  return segments
+  // For other cases, return direct path for now
+  return [{ start: objectPos, end: receptorPos }]
 }
 
 // Reflect a point across a wall

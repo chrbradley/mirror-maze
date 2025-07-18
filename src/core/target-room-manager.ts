@@ -4,7 +4,7 @@
 import type { RoomCoord } from './coordinates'
 
 export class TargetRoomManager {
-  private currentTargetRoom: RoomCoord = { row: 1, col: 3 } // Default to (1,3)
+  private currentTargetRoom: RoomCoord = { row: 0, col: 2 } // Default to (0,2) - simple horizontal case
   private listeners: ((newTargetRoom: RoomCoord) => void)[] = []
   
   // Get the current target room

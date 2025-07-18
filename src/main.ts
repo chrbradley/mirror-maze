@@ -35,12 +35,12 @@ const sketch = (p: p5) => {
   let controls: Controls
   
   
-  // Create an object at room (0,1) center
-  const object = new ObjectEntity({ row: 0, col: 1 }, { x: 120, y: 120 })
+  // Create an object on the left side of room (0,1)
+  const object = new ObjectEntity({ row: 0, col: 1 }, { x: 60, y: 120 })
   entityManager.addEntity(object)
   
-  // Create a receptor at room (0,1) different position
-  const receptor = new ReceptorEntity({ row: 0, col: 1 }, { x: 180, y: 180 })
+  // Create a receptor on the right side of room (0,1)
+  const receptor = new ReceptorEntity({ row: 0, col: 1 }, { x: 180, y: 120 })
   entityManager.addEntity(receptor)
   p.setup = () => {
     const canvas = p.createCanvas(CANVAS_WIDTH, TOTAL_HEIGHT)
