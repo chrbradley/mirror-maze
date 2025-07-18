@@ -35,19 +35,7 @@ export function drawGrid(p: p5) {
     }
   })
   
-  // Draw room indices
-  p.fill(COLORS.CYAN)
-  p.noStroke()
-  applyFont(p, FONT_CONFIG.SIZE_SMALL)
-  
-  for (let row = 0; row < GRID_ROWS; row++) {
-    for (let col = 0; col < GRID_COLS; col++) {
-      const x = GRID_OFFSET_X + col * ROOM_WIDTH + 5
-      const y = GRID_OFFSET_Y + row * ROOM_HEIGHT + 15
-      
-      p.text(`(${row},${col})`, x, y)
-    }
-  }
+  // Room indices removed to avoid UI clutter with radio buttons
   
   p.pop()
 }

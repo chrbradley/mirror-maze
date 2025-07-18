@@ -3,13 +3,16 @@
 
 import p5 from 'p5'
 import { Entity } from './entities'
-import { canvasToRoom, roomToCanvas } from './coordinates'
-import type { Point2D } from './coordinates'
+import { canvasToRoom, roomToCanvas, isRoomFlippedX, isRoomFlippedY, mirrorPoint, getMirroredRoomPoint } from './coordinates'
+import type { Point2D, RoomCoord } from './coordinates'
 import { COLORS } from '../ui/theme'
+import { HomeRoomManager } from './home-room-manager'
 
 export class DragManager {
   private currentDrag: Entity | null = null
   private dragOffset: Point2D = { x: 0, y: 0 }
+  
+  constructor(private homeRoomManager: HomeRoomManager) {}
   
   // Check if mouse is over an entity in the home room
   private getEntityAtPosition(entities: Entity[], p: p5): Entity | null {
@@ -18,18 +21,26 @@ export class DragManager {
     
     if (!result) return null
     
-    // Only allow dragging in home room (0,0)
-    if (result.room.row !== 0 || result.room.col !== 0) return null
+    // Only allow dragging in home room
+    if (!this.homeRoomManager.isHomeRoom(result.room)) return null
     
     // Check each draggable entity
     for (const entity of entities) {
       if (!entity.isDraggable) continue
-      if (entity.homeRoom.row !== 0 || entity.homeRoom.col !== 0) continue
+      if (!this.homeRoomManager.isHomeRoom(entity.homeRoom)) continue
+      
+      // Convert mouse position to entity's local space (accounting for flips)
+      const homeRoom = this.homeRoomManager.getCurrentHomeRoom()
+      const mouseInLocalSpace = mirrorPoint(
+        result.localPoint,
+        isRoomFlippedX(homeRoom.col),
+        isRoomFlippedY(homeRoom.row)
+      )
       
       // Check if mouse is within 20 pixels of entity position
       const dist = Math.sqrt(
-        Math.pow(entity.position.x - result.localPoint.x, 2) +
-        Math.pow(entity.position.y - result.localPoint.y, 2)
+        Math.pow(entity.position.x - mouseInLocalSpace.x, 2) +
+        Math.pow(entity.position.y - mouseInLocalSpace.y, 2)
       )
       
       if (dist < 20) {
@@ -48,9 +59,16 @@ export class DragManager {
       this.currentDrag = entity
       const result = canvasToRoom({ x: p.mouseX, y: p.mouseY })
       if (result) {
+        // Convert mouse position to entity's local space (accounting for flips)
+        const homeRoom = this.homeRoomManager.getCurrentHomeRoom()
+        const mouseInLocalSpace = mirrorPoint(
+          result.localPoint,
+          isRoomFlippedX(homeRoom.col),
+          isRoomFlippedY(homeRoom.row)
+        )
         this.dragOffset = {
-          x: entity.position.x - result.localPoint.x,
-          y: entity.position.y - result.localPoint.y
+          x: entity.position.x - mouseInLocalSpace.x,
+          y: entity.position.y - mouseInLocalSpace.y
         }
       }
     }
@@ -63,13 +81,21 @@ export class DragManager {
     const result = canvasToRoom({ x: p.mouseX, y: p.mouseY })
     if (!result) return
     
-    // Only allow dragging within home room (0,0)
-    if (result.room.row !== 0 || result.room.col !== 0) return
+    // Only allow dragging within home room
+    if (!this.homeRoomManager.isHomeRoom(result.room)) return
+    
+    // Convert mouse position to entity's local space (accounting for flips)
+    const homeRoom = this.homeRoomManager.getCurrentHomeRoom()
+    const mouseInLocalSpace = mirrorPoint(
+      result.localPoint,
+      isRoomFlippedX(homeRoom.col),
+      isRoomFlippedY(homeRoom.row)
+    )
     
     // Update entity position with offset
     this.currentDrag.position = {
-      x: Math.max(10, Math.min(230, result.localPoint.x + this.dragOffset.x)),
-      y: Math.max(10, Math.min(230, result.localPoint.y + this.dragOffset.y))
+      x: Math.max(10, Math.min(230, mouseInLocalSpace.x + this.dragOffset.x)),
+      y: Math.max(10, Math.min(230, mouseInLocalSpace.y + this.dragOffset.y))
     }
   }
   
@@ -83,7 +109,10 @@ export class DragManager {
     const entity = this.getEntityAtPosition(entities, p)
     
     if (entity && !this.currentDrag) {
-      const canvasPos = roomToCanvas({ row: 0, col: 0 }, entity.position)
+      const homeRoom = this.homeRoomManager.getCurrentHomeRoom()
+      // Apply the same mirroring transformation as when drawing entities
+      const mirroredPos = getMirroredRoomPoint(homeRoom, entity.position)
+      const canvasPos = roomToCanvas(homeRoom, mirroredPos)
       p.push()
       p.noFill()
       p.stroke(COLORS.CYAN)

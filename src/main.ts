@@ -9,21 +9,25 @@ import { EntityManager, ObjectEntity, ReceptorEntity } from './core/entities'
 import { DragManager } from './core/drag-manager'
 import { MirrorManager } from './core/mirrors'
 import { Controls, type GameMode } from './ui/controls'
+import { HomeRoomManager } from './core/home-room-manager'
+import { HomeRoomSelector } from './ui/home-room-selector'
 
 const sketch = (p: p5) => {
   // Create managers and entities
   const entityManager = new EntityManager()
-  const dragManager = new DragManager()
+  const homeRoomManager = new HomeRoomManager(entityManager)
+  const dragManager = new DragManager(homeRoomManager)
   const mirrorManager = new MirrorManager()
+  const homeRoomSelector = new HomeRoomSelector(homeRoomManager)
   let controls: Controls
   
   
-  // Create an object at room (0,0) center
-  const object = new ObjectEntity({ row: 0, col: 0 }, { x: 120, y: 120 })
+  // Create an object at room (0,1) center
+  const object = new ObjectEntity({ row: 0, col: 1 }, { x: 120, y: 120 })
   entityManager.addEntity(object)
   
-  // Create a receptor at room (0,0) different position
-  const receptor = new ReceptorEntity({ row: 0, col: 0 }, { x: 180, y: 180 })
+  // Create a receptor at room (0,1) different position
+  const receptor = new ReceptorEntity({ row: 0, col: 1 }, { x: 180, y: 180 })
   entityManager.addEntity(receptor)
   p.setup = () => {
     const canvas = p.createCanvas(CANVAS_WIDTH, TOTAL_HEIGHT)
@@ -66,6 +70,9 @@ const sketch = (p: p5) => {
     // Draw all entities
     entityManager.drawAll(p)
     
+    // Draw home room selector radio buttons
+    homeRoomSelector.drawRadioButtons(p)
+    
     // Draw hover highlights
     dragManager.drawHoverHighlight(entityManager.getEntities(), p)
     mirrorManager.drawHoverHighlight(p)
@@ -83,12 +90,17 @@ const sketch = (p: p5) => {
     const controlsHandled = controls.handleMousePressed(p.mouseX, p.mouseY)
     
     if (!controlsHandled) {
-      // Try mirror click
-      const mirrorClicked = mirrorManager.handleClick(p)
+      // Try home room selector
+      const radioClicked = homeRoomSelector.handleMouseClick(p.mouseX, p.mouseY)
       
-      // If no mirror clicked, try entity drag
-      if (!mirrorClicked) {
-        dragManager.handleMousePressed(entityManager.getEntities(), p)
+      if (!radioClicked) {
+        // Try mirror click
+        const mirrorClicked = mirrorManager.handleClick(p)
+        
+        // If no mirror clicked, try entity drag
+        if (!mirrorClicked) {
+          dragManager.handleMousePressed(entityManager.getEntities(), p)
+        }
       }
     }
   }
