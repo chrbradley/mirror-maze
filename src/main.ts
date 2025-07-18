@@ -20,7 +20,7 @@ const sketch = (p: p5) => {
   const homeRoomManager = new HomeRoomManager(entityManager)
   const targetRoomManager = new TargetRoomManager()
   const dragManager = new DragManager(homeRoomManager)
-  const mirrorManager = new MirrorManager()
+  const mirrorManager = new MirrorManager(homeRoomManager)
   const homeRoomSelector = new HomeRoomSelector(homeRoomManager)
   const targetRoomSelector = new TargetRoomSelector(targetRoomManager)
   let controls: Controls

@@ -6,6 +6,7 @@ import { roomToCanvas } from './coordinates'
 import type { RoomCoord } from './coordinates'
 import { COLORS, STROKE_WEIGHTS } from '../ui/theme'
 import { ROOM_WIDTH, ROOM_HEIGHT, GRID_ROWS, GRID_COLS } from './grid'
+import { HomeRoomManager } from './home-room-manager'
 
 export type WallPosition = 'N' | 'S' | 'E' | 'W'
 export type MirrorState = 'disabled' | 'off' | 'on'
@@ -21,12 +22,13 @@ export class Mirror {
     this.state = state
   }
   
-  // Cycle through states
+  // Cycle through states (only between off and on for toggleable walls)
   public cycleState() {
+    if (this.state === 'disabled') return // Disabled walls can't be toggled
+    
     switch (this.state) {
-      case 'disabled': this.state = 'off'; break
       case 'off': this.state = 'on'; break
-      case 'on': this.state = 'disabled'; break
+      case 'on': this.state = 'off'; break
     }
   }
   
@@ -47,9 +49,20 @@ export class Mirror {
 
 export class MirrorManager {
   private mirrors: Mirror[] = []
+  private wallStates: Map<WallPosition, MirrorState> = new Map()
   
-  constructor() {
+  constructor(private homeRoomManager: HomeRoomManager) {
     this.initializeMirrors()
+    this.initializeWallStates()
+    
+    // Store previous home room for state transfer
+    let previousHomeRoom = this.homeRoomManager.getCurrentHomeRoom()
+    
+    // Listen for home room changes
+    this.homeRoomManager.addListener((newHomeRoom) => {
+      this.transferWallStates(previousHomeRoom, newHomeRoom)
+      previousHomeRoom = newHomeRoom
+    })
   }
   
   private initializeMirrors() {
@@ -81,6 +94,63 @@ export class MirrorManager {
     return this.mirrors
   }
   
+  // Get only the mirrors in the home room that are turned on
+  public getActiveHomeMirrors(): Mirror[] {
+    const homeRoom = this.homeRoomManager.getCurrentHomeRoom()
+    return this.mirrors.filter(m => 
+      m.room.row === homeRoom.row && 
+      m.room.col === homeRoom.col && 
+      m.state === 'on'
+    )
+  }
+  
+  private initializeWallStates() {
+    // Store initial wall states from the current home room
+    const homeRoom = this.homeRoomManager.getCurrentHomeRoom()
+    const homeMirrors = this.mirrors.filter(m => 
+      m.room.row === homeRoom.row && m.room.col === homeRoom.col
+    )
+    
+    for (const mirror of homeMirrors) {
+      if (mirror.state !== 'disabled') {
+        this.wallStates.set(mirror.wall, mirror.state)
+      }
+    }
+  }
+  
+  private transferWallStates(previousHomeRoom: RoomCoord, newHomeRoom: RoomCoord) {
+    // Save previous home room wall states
+    const previousHomeMirrors = this.mirrors.filter(m => 
+      m.room.row === previousHomeRoom.row && m.room.col === previousHomeRoom.col
+    )
+    
+    // Update saved states from previous home room
+    for (const mirror of previousHomeMirrors) {
+      if (mirror.state !== 'disabled') {
+        this.wallStates.set(mirror.wall, mirror.state)
+      }
+    }
+    
+    // Reset all non-home room mirrors to 'off'
+    for (const mirror of this.mirrors) {
+      if (mirror.state !== 'disabled' && 
+          (mirror.room.row !== newHomeRoom.row || mirror.room.col !== newHomeRoom.col)) {
+        mirror.state = 'off'
+      }
+    }
+    
+    // Apply saved states to new home room
+    const newHomeMirrors = this.mirrors.filter(m => 
+      m.room.row === newHomeRoom.row && m.room.col === newHomeRoom.col
+    )
+    
+    for (const mirror of newHomeMirrors) {
+      if (mirror.state !== 'disabled' && this.wallStates.has(mirror.wall)) {
+        mirror.state = this.wallStates.get(mirror.wall)!
+      }
+    }
+  }
+  
   // Draw all mirrors
   public drawMirrors(p: p5) {
     for (const mirror of this.mirrors) {
@@ -105,11 +175,14 @@ export class MirrorManager {
     }
   }
   
-  // Handle click on mirrors
+  // Handle click on mirrors (only in home room)
   public handleClick(p: p5): boolean {
     const mousePos = { x: p.mouseX, y: p.mouseY }
+    const homeRoom = this.homeRoomManager.getCurrentHomeRoom()
     
     for (const mirror of this.mirrors) {
+      // Only allow clicking mirrors in the home room
+      if (mirror.room.row !== homeRoom.row || mirror.room.col !== homeRoom.col) continue
       if (mirror.state === 'disabled') continue
       
       const segment = mirror.getWallSegment()
@@ -121,6 +194,10 @@ export class MirrorManager {
       
       if (dist < 10) {
         mirror.cycleState()
+        // Update saved wall states
+        if (mirror.state !== 'disabled') {
+          this.wallStates.set(mirror.wall, mirror.state)
+        }
         return true
       }
     }
@@ -128,11 +205,14 @@ export class MirrorManager {
     return false
   }
   
-  // Draw hover highlight
+  // Draw hover highlight (only for home room mirrors)
   public drawHoverHighlight(p: p5) {
     const mousePos = { x: p.mouseX, y: p.mouseY }
+    const homeRoom = this.homeRoomManager.getCurrentHomeRoom()
     
     for (const mirror of this.mirrors) {
+      // Only show hover for mirrors in the home room
+      if (mirror.room.row !== homeRoom.row || mirror.room.col !== homeRoom.col) continue
       if (mirror.state === 'disabled') continue
       
       const segment = mirror.getWallSegment()
