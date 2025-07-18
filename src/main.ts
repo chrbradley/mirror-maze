@@ -13,6 +13,8 @@ import { HomeRoomManager } from './core/home-room-manager'
 import { HomeRoomSelector } from './ui/home-room-selector'
 import { TargetRoomManager } from './core/target-room-manager'
 import { TargetRoomSelector } from './ui/target-room-selector'
+import { RayPathCalculator } from './core/ray-path-calculator'
+import { RayRenderer } from './ui/ray-renderer'
 
 const sketch = (p: p5) => {
   // Create managers and entities
@@ -23,6 +25,13 @@ const sketch = (p: p5) => {
   const mirrorManager = new MirrorManager(homeRoomManager)
   const homeRoomSelector = new HomeRoomSelector(homeRoomManager)
   const targetRoomSelector = new TargetRoomSelector(targetRoomManager)
+  const rayPathCalculator = new RayPathCalculator(
+    homeRoomManager,
+    targetRoomManager,
+    entityManager,
+    mirrorManager
+  )
+  const rayRenderer = new RayRenderer(entityManager, targetRoomManager)
   let controls: Controls
   
   
@@ -73,6 +82,10 @@ const sketch = (p: p5) => {
     
     // Draw all entities
     entityManager.drawAll(p)
+    
+    // Calculate and draw ray paths
+    const rayPath = rayPathCalculator.calculateRayPath()
+    rayRenderer.drawRayPath(p, rayPath)
     
     // Draw home room selector radio buttons
     homeRoomSelector.drawRadioButtons(p)
