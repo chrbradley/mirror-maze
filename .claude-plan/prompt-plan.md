@@ -193,7 +193,7 @@ Implement geometric intersection for ray tracing. Create:
 Test: Intersection math should correctly find where rays hit walls.
 ```
 
-### Step 11: Method of Images Algorithm
+### Step 11: Method of Images Algorithm ✅
 
 ```text
 Build the core reflection algorithm. Implement:

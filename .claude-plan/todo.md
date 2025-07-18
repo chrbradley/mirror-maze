@@ -65,10 +65,12 @@
     - Added getAllActiveWallSegments for full grid
     - Handled edge cases (parallel rays, epsilon tolerance)
 
-11. **Step 11: Method of Images Algorithm**
-    - computeVirtualTarget function
-    - computeReflectionPath function
-    - Path validation
+11. **Step 11: Method of Images Algorithm** ✅
+    - Created src/core/raytrace.ts
+    - Implemented computeVirtualTarget function to reflect receptor through mirrors
+    - Implemented computeReflectionPath function to trace ray paths
+    - Added path validation to ensure correct mirror usage
+    - Handles multi-bounce reflections with proper physics
 
 12. **Step 12: Ray Visualization**
     - Neon green ray rendering
