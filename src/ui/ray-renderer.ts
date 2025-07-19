@@ -4,7 +4,7 @@
 import p5 from 'p5';
 import type { RayPath } from '../core/raytrace';
 import type { Point2D } from '../core/coordinates';
-import { EntityManager } from '../core/entities';
+import { EntityManager, ObjectEntity, ReceptorEntity } from '../core/entities';
 import { roomToCanvas, getMirroredRoomPoint } from '../core/coordinates';
 import { TargetRoomManager } from '../core/target-room-manager';
 
@@ -231,9 +231,9 @@ export class RayRenderer {
   // Draw the dotted line of sight from receptor to virtual object
   private drawLineOfSight(p: p5) {
     const entities = this.entityManager.getEntities();
-    const object = entities.find((e) => e.constructor.name === 'ObjectEntity');
+    const object = entities.find((e) => e instanceof ObjectEntity);
     const receptor = entities.find(
-      (e) => e.constructor.name === 'ReceptorEntity'
+      (e) => e instanceof ReceptorEntity
     );
 
     if (!object || !receptor) {
@@ -429,8 +429,8 @@ export class RayRenderer {
   // Calculate the light bounce path within the home room
   private calculateLightBouncePath() {
     const entities = this.entityManager.getEntities();
-    const object = entities.find((e) => e.constructor.name === 'ObjectEntity');
-    const receptor = entities.find((e) => e.constructor.name === 'ReceptorEntity');
+    const object = entities.find((e) => e instanceof ObjectEntity);
+    const receptor = entities.find((e) => e instanceof ReceptorEntity);
 
     if (!object || !receptor) {
       this.lightBouncePath = [];

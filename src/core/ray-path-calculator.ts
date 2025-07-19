@@ -7,7 +7,7 @@ import type { MirrorReflection, RayPath } from './raytrace'
 import type { Mirror, WallPosition } from './mirrors'
 import { HomeRoomManager } from './home-room-manager'
 import { TargetRoomManager } from './target-room-manager'
-import { EntityManager } from './entities'
+import { EntityManager, ObjectEntity, ReceptorEntity } from './entities'
 import { MirrorManager } from './mirrors'
 import { traceRayInRoom, type RaySegment } from './simple-ray-tracer'
 import { calculateMirrorSequence } from './mirror-sequence-calculator'
@@ -49,8 +49,8 @@ export class RayPathCalculator {
   // Calculate the current ray path from object to receptor
   calculateRayPath(): RayPath | null {
     const entities = this.entityManager.getEntities()
-    const object = entities.find(e => e.constructor.name === 'ObjectEntity')
-    const receptor = entities.find(e => e.constructor.name === 'ReceptorEntity')
+    const object = entities.find(e => e instanceof ObjectEntity)
+    const receptor = entities.find(e => e instanceof ReceptorEntity)
     
     if (!object || !receptor) {
       return null
@@ -110,7 +110,7 @@ export class RayPathCalculator {
     }
     
     const entities = this.entityManager.getEntities()
-    const object = entities.find(e => e.constructor.name === 'ObjectEntity')
+    const object = entities.find(e => e instanceof ObjectEntity)
     if (!object) {
       return null
     }

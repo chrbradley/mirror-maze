@@ -11,6 +11,7 @@ export abstract class Entity {
   public position: Point2D
   public homeRoom: RoomCoord
   public isDraggable: boolean = false
+  public abstract readonly type: string
   
   constructor(homeRoom: RoomCoord, position: Point2D) {
     this.homeRoom = homeRoom
@@ -41,6 +42,7 @@ export abstract class Entity {
 
 // Object entity (cyan triangle)
 export class ObjectEntity extends Entity {
+  public readonly type = 'object'
   private rotation: number
   
   constructor(homeRoom: RoomCoord, position: Point2D) {
@@ -87,6 +89,7 @@ export class ObjectEntity extends Entity {
 
 // Receptor entity (cyan circle with colored dots)
 export class ReceptorEntity extends Entity {
+  public readonly type = 'receptor'
   private rotation: number
   
   constructor(homeRoom: RoomCoord, position: Point2D) {
