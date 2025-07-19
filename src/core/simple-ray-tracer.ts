@@ -4,7 +4,6 @@
 import type { Point2D } from './coordinates'
 import type { Mirror, WallPosition } from './mirrors'
 import { ROOM_WIDTH, ROOM_HEIGHT } from './grid'
-import { traceFoldingRay } from './fold-ray-tracer'
 
 export interface RaySegment {
   start: Point2D

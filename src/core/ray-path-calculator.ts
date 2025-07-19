@@ -4,7 +4,6 @@
 import type { RoomCoord, Point2D } from './coordinates'
 import { roomToCanvas, getMirroredRoomPoint, isRoomFlippedX, isRoomFlippedY } from './coordinates'
 import type { MirrorReflection, RayPath } from './raytrace'
-import { computeReflectionPath } from './raytrace'
 import type { Mirror, WallPosition } from './mirrors'
 import { HomeRoomManager } from './home-room-manager'
 import { TargetRoomManager } from './target-room-manager'

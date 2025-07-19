@@ -4,11 +4,9 @@
 import p5 from 'p5';
 import type { RayPath } from '../core/raytrace';
 import type { Point2D } from '../core/coordinates';
-import { COLORS } from './theme';
 import { EntityManager } from '../core/entities';
 import { roomToCanvas, getMirroredRoomPoint } from '../core/coordinates';
 import { TargetRoomManager } from '../core/target-room-manager';
-import { getFoldingDebugInfo } from '../core/fold-ray-tracer';
 
 export interface LineOfSightPoints {
   origin: Point2D;

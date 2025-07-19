@@ -4,7 +4,6 @@
 import p5 from 'p5'
 import { roomToCanvas, getMirroredRoomPoint, isRoomFlippedX, isRoomFlippedY } from './coordinates'
 import type { RoomCoord, Point2D } from './coordinates'
-import { drawCyanOutline } from '../ui/theme'
 import { GRID_ROWS, GRID_COLS } from './grid'
 
 // Base entity class

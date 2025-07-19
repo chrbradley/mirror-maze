@@ -2,7 +2,7 @@
 // ABOUTME: Handles drawing room boundaries and labels with proper spacing
 
 import p5 from 'p5'
-import { COLORS, STROKE_WEIGHTS, drawCyanOutline, applyFont, FONT_CONFIG } from '../ui/theme'
+import { COLORS, STROKE_WEIGHTS } from '../ui/theme'
 
 // Grid configuration constants
 export const ROOM_WIDTH = 240

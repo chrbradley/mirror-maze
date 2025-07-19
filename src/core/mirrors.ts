@@ -210,7 +210,7 @@ export class MirrorManager {
       if (dist < 10) {
         mirror.cycleState()
         // Update saved wall states
-        if (mirror.state !== 'disabled') {
+        if (mirror.state === 'on' || mirror.state === 'off') {
           this.wallStates.set(mirror.wall, mirror.state)
         }
         return true
