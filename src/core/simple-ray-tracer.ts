@@ -2,8 +2,9 @@
 // ABOUTME: Handles direct paths and multiple bounces off mirrors
 
 import type { Point2D } from './coordinates'
-import type { Mirror } from './mirrors'
+import type { Mirror, WallPosition } from './mirrors'
 import { ROOM_WIDTH, ROOM_HEIGHT } from './grid'
+import { traceFoldingRay } from './fold-ray-tracer'
 
 export interface RaySegment {
   start: Point2D
@@ -23,124 +24,8 @@ function transformWallForFlippedRoom(wall: string, flipX: boolean, flipY: boolea
   return wall
 }
 
-// Trace a ray from object to receptor within a room, bouncing off active mirrors
-export function traceRayInRoom(
-  objectPos: Point2D,
-  receptorPos: Point2D,
-  roomMirrors: Mirror[],
-  maxBounces: number = 5,
-  flipX: boolean = false,
-  flipY: boolean = false
-): RaySegment[] {
-  // Filter to only active mirrors
-  const activeMirrors = roomMirrors.filter(m => m.state === 'on')
-  
-  console.log('Active mirrors:', activeMirrors.map(m => m.wall))
-  console.log('Object pos:', objectPos)
-  console.log('Receptor pos:', receptorPos)
-  console.log('Room flipped - X:', flipX, 'Y:', flipY)
-  
-  // If no active mirrors, return direct path
-  if (activeMirrors.length === 0) {
-    return [{ start: objectPos, end: receptorPos }]
-  }
-  
-  // Handle each active mirror type
-  for (const mirror of activeMirrors) {
-    // Transform the wall based on room flipping
-    const transformedWall = transformWallForFlippedRoom(mirror.wall, flipX, flipY)
-    console.log(`Mirror on ${mirror.wall} wall transforms to ${transformedWall} wall`)
-    
-    if (transformedWall === 'E') {
-      // East wall reflection
-      const virtualReceptor = {
-        x: 2 * ROOM_WIDTH - receptorPos.x,
-        y: receptorPos.y
-      }
-      
-      console.log('Virtual receptor for East wall:', virtualReceptor)
-      console.log('ROOM_WIDTH:', ROOM_WIDTH)
-      
-      // Cast ray from object toward virtual receptor
-      const dx = virtualReceptor.x - objectPos.x
-      const dy = virtualReceptor.y - objectPos.y
-      const length = Math.sqrt(dx * dx + dy * dy)
-      
-      if (length < 0.001) {
-        return [{ start: objectPos, end: receptorPos }]
-      }
-      
-      const dir = { x: dx / length, y: dy / length }
-      console.log('Ray direction:', dir)
-      
-      // Find intersection with East wall
-      const t = (ROOM_WIDTH - objectPos.x) / dir.x
-      console.log('t value for East wall:', t)
-      
-      if (t > 0 && dir.x > 0) { // Ray must be going right
-        const hitPoint = {
-          x: ROOM_WIDTH,
-          y: objectPos.y + t * dir.y
-        }
-        console.log('Hit point on East wall:', hitPoint)
-        
-        // Ensure hit point is within room bounds
-        if (hitPoint.y >= 0 && hitPoint.y <= ROOM_HEIGHT) {
-          return [
-            { start: objectPos, end: hitPoint },
-            { start: hitPoint, end: receptorPos }
-          ]
-        }
-      }
-    } else if (transformedWall === 'W') {
-      // West wall reflection
-      const virtualReceptor = {
-        x: -receptorPos.x,
-        y: receptorPos.y
-      }
-      
-      console.log('Virtual receptor for West wall:', virtualReceptor)
-      
-      // Cast ray from object toward virtual receptor
-      const dx = virtualReceptor.x - objectPos.x
-      const dy = virtualReceptor.y - objectPos.y
-      const length = Math.sqrt(dx * dx + dy * dy)
-      
-      if (length < 0.001) {
-        return [{ start: objectPos, end: receptorPos }]
-      }
-      
-      const dir = { x: dx / length, y: dy / length }
-      console.log('Ray direction:', dir)
-      
-      // Find intersection with West wall
-      const t = -objectPos.x / dir.x
-      console.log('t value for West wall:', t)
-      
-      if (t > 0 && dir.x < 0) { // Ray must be going left
-        const hitPoint = {
-          x: 0,
-          y: objectPos.y + t * dir.y
-        }
-        console.log('Hit point on West wall:', hitPoint)
-        
-        // Ensure hit point is within room bounds
-        if (hitPoint.y >= 0 && hitPoint.y <= ROOM_HEIGHT) {
-          return [
-            { start: objectPos, end: hitPoint },
-            { start: hitPoint, end: receptorPos }
-          ]
-        }
-      }
-    }
-  }
-  
-  // For other cases, return direct path for now
-  return [{ start: objectPos, end: receptorPos }]
-}
-
 // Reflect a point across a wall
-function reflectPointAcrossWall(point: Point2D, wall: string): Point2D {
+function reflectPointAcrossWall(point: Point2D, wall: WallPosition): Point2D {
   switch (wall) {
     case 'N':
       return { x: point.x, y: -point.y }
@@ -155,44 +40,159 @@ function reflectPointAcrossWall(point: Point2D, wall: string): Point2D {
   }
 }
 
-// Calculate ray-wall intersection
-function rayWallIntersection(
+// Calculate intersection of ray with wall
+function calculateWallIntersection(
   origin: Point2D,
-  dir: Point2D,
-  wall: string
-): number {
-  // Convert to room-local coordinates (0,0 to ROOM_WIDTH,ROOM_HEIGHT)
-  const localOrigin = { ...origin }
+  direction: Point2D,
+  wall: WallPosition
+): { point: Point2D; t: number } | null {
+  // Normalize direction
+  const length = Math.sqrt(direction.x * direction.x + direction.y * direction.y)
+  if (length < 0.001) return null
+  
+  const dir = { x: direction.x / length, y: direction.y / length }
+  
+  let t = -1
+  let hitPoint: Point2D | null = null
   
   switch (wall) {
     case 'N': // y = 0
-      if (Math.abs(dir.y) < 1e-6) return -1
-      const tN = -localOrigin.y / dir.y
-      const xN = localOrigin.x + tN * dir.x
-      if (tN > 0 && xN >= 0 && xN <= ROOM_WIDTH) return tN
+      if (Math.abs(dir.y) < 0.001) return null
+      t = -origin.y / dir.y
+      if (t > 0.001) {
+        const x = origin.x + t * dir.x
+        if (x >= 0 && x <= ROOM_WIDTH) {
+          hitPoint = { x, y: 0 }
+        }
+      }
       break
       
     case 'S': // y = ROOM_HEIGHT
-      if (Math.abs(dir.y) < 1e-6) return -1
-      const tS = (ROOM_HEIGHT - localOrigin.y) / dir.y
-      const xS = localOrigin.x + tS * dir.x
-      if (tS > 0 && xS >= 0 && xS <= ROOM_WIDTH) return tS
+      if (Math.abs(dir.y) < 0.001) return null
+      t = (ROOM_HEIGHT - origin.y) / dir.y
+      if (t > 0.001) {
+        const x = origin.x + t * dir.x
+        if (x >= 0 && x <= ROOM_WIDTH) {
+          hitPoint = { x, y: ROOM_HEIGHT }
+        }
+      }
       break
       
     case 'E': // x = ROOM_WIDTH
-      if (Math.abs(dir.x) < 1e-6) return -1
-      const tE = (ROOM_WIDTH - localOrigin.x) / dir.x
-      const yE = localOrigin.y + tE * dir.y
-      if (tE > 0 && yE >= 0 && yE <= ROOM_HEIGHT) return tE
+      if (Math.abs(dir.x) < 0.001) return null
+      t = (ROOM_WIDTH - origin.x) / dir.x
+      if (t > 0.001) {
+        const y = origin.y + t * dir.y
+        if (y >= 0 && y <= ROOM_HEIGHT) {
+          hitPoint = { x: ROOM_WIDTH, y }
+        }
+      }
       break
       
     case 'W': // x = 0
-      if (Math.abs(dir.x) < 1e-6) return -1
-      const tW = -localOrigin.x / dir.x
-      const yW = localOrigin.y + tW * dir.y
-      if (tW > 0 && yW >= 0 && yW <= ROOM_HEIGHT) return tW
+      if (Math.abs(dir.x) < 0.001) return null
+      t = -origin.x / dir.x
+      if (t > 0.001) {
+        const y = origin.y + t * dir.y
+        if (y >= 0 && y <= ROOM_HEIGHT) {
+          hitPoint = { x: 0, y }
+        }
+      }
       break
   }
   
-  return -1
+  return hitPoint && t > 0 ? { point: hitPoint, t } : null
+}
+
+// Trace a ray from object to receptor within a room, bouncing off active mirrors
+export function traceRayInRoom(
+  objectPos: Point2D,
+  receptorPos: Point2D,
+  roomMirrors: Mirror[],
+  maxBounces: number = 5,
+  flipX: boolean = false,
+  flipY: boolean = false
+): RaySegment[] {
+  // Filter to only active mirrors
+  const activeMirrors = roomMirrors.filter(m => m.state === 'on')
+  
+  
+  // If no active mirrors, return direct path
+  if (activeMirrors.length === 0) {
+    return [{ start: objectPos, end: receptorPos }]
+  }
+  
+  // Get transformed walls for active mirrors
+  const activeWalls = activeMirrors.map(mirror => {
+    const transformed = transformWallForFlippedRoom(mirror.wall, flipX, flipY) as WallPosition
+    return transformed
+  })
+  
+  // For now, return direct path - folding will be done in canvas space
+  return [{ start: objectPos, end: receptorPos }]
+}
+
+// Extended version for multi-bounce scenarios
+export function traceRayWithMultipleBounces(
+  objectPos: Point2D,
+  receptorPos: Point2D,
+  mirrorSequence: WallPosition[],
+  flipX: boolean = false,
+  flipY: boolean = false
+): RaySegment[] {
+  if (mirrorSequence.length === 0) {
+    return [{ start: objectPos, end: receptorPos }]
+  }
+  
+  const segments: RaySegment[] = []
+  let currentPos = { ...objectPos }
+  let targetPos = { ...receptorPos }
+  
+  // Apply Method of Images in reverse order
+  const virtualPositions: Point2D[] = [targetPos]
+  
+  // Transform mirror sequence based on room flipping
+  const transformedSequence = mirrorSequence.map(wall => 
+    transformWallForFlippedRoom(wall, flipX, flipY) as WallPosition
+  )
+  
+  // Calculate virtual positions for each mirror (in reverse)
+  for (let i = transformedSequence.length - 1; i >= 0; i--) {
+    const wall = transformedSequence[i]
+    const lastVirtual = virtualPositions[virtualPositions.length - 1]
+    const newVirtual = reflectPointAcrossWall(lastVirtual, wall)
+    virtualPositions.push(newVirtual)
+  }
+  
+  // Reverse to get correct order
+  virtualPositions.reverse()
+  
+  // Trace ray through each mirror
+  for (let i = 0; i < transformedSequence.length; i++) {
+    const wall = transformedSequence[i]
+    const virtualTarget = virtualPositions[i + 1]
+    
+    // Calculate direction to virtual target
+    const direction = {
+      x: virtualTarget.x - currentPos.x,
+      y: virtualTarget.y - currentPos.y
+    }
+    
+    // Find intersection with wall
+    const intersection = calculateWallIntersection(currentPos, direction, wall)
+    
+    if (intersection) {
+      segments.push({ start: currentPos, end: intersection.point })
+      currentPos = intersection.point
+    } else {
+      // If no valid intersection, return direct path
+      console.warn(`Failed to find intersection with ${wall} wall`)
+      return [{ start: objectPos, end: receptorPos }]
+    }
+  }
+  
+  // Add final segment to receptor
+  segments.push({ start: currentPos, end: receptorPos })
+  
+  return segments
 }

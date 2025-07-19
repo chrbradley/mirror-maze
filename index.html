@@ -5,8 +5,152 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Mirror Maze - Interactive Optics</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+      body {
+        margin: 0;
+        padding: 20px;
+        background: #000000;
+        color: #00FFFF;
+        font-family: 'Orbitron', monospace;
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+      }
+      
+      .title {
+        font-size: 3.5rem;
+        font-weight: 400;
+        letter-spacing: 0.3em;
+        margin: 20px 0 30px 0;
+        text-transform: uppercase;
+        text-shadow: 
+          0 0 5px #00FFFF,
+          0 0 10px #00FFFF,
+          0 0 15px #00FFFF,
+          0 0 20px #00FFFF;
+        animation: glow 2s ease-in-out infinite alternate;
+      }
+      
+      @keyframes glow {
+        from {
+          text-shadow: 
+            0 0 5px #00FFFF,
+            0 0 10px #00FFFF,
+            0 0 15px #00FFFF,
+            0 0 20px #00FFFF;
+        }
+        to {
+          text-shadow: 
+            0 0 10px #00FFFF,
+            0 0 20px #00FFFF,
+            0 0 30px #00FFFF,
+            0 0 40px #00FFFF;
+        }
+      }
+      
+      .instructions {
+        max-width: 1000px;
+        margin: 0 auto 30px;
+        font-size: 0.95rem;
+        line-height: 1.6;
+        font-weight: 400;
+        background: rgba(0, 255, 255, 0.05);
+        border: 1px solid rgba(0, 255, 255, 0.3);
+        border-radius: 8px;
+        padding: 25px;
+        box-shadow: 
+          0 0 10px rgba(0, 255, 255, 0.2),
+          inset 0 0 10px rgba(0, 255, 255, 0.1);
+      }
+      
+      .instructions h3 {
+        color: #00FFFF;
+        font-size: 1.2rem;
+        margin-top: 0;
+        margin-bottom: 20px;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        text-align: center;
+      }
+      
+      .intro-text {
+        text-align: center;
+        margin-bottom: 25px;
+      }
+      
+      .columns {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 30px;
+        text-align: left;
+      }
+      
+      .column h4 {
+        color: #00FFFF;
+        font-size: 1rem;
+        margin-top: 0;
+        margin-bottom: 15px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+      
+      .column ul {
+        padding-left: 20px;
+        margin: 0;
+      }
+      
+      .column li {
+        margin-bottom: 8px;
+      }
+      
+      #canvas-container {
+        display: flex;
+        justify-content: center;
+        margin-top: 20px;
+        flex: 1;
+      }
+    </style>
   </head>
   <body>
+    <h1 class="title">Mirror Maze</h1>
+    
+    <div class="instructions">
+      <h3>Virtual Rooms & Light Paths</h3>
+      
+      <div class="intro-text">
+        <p>Explore how light travels from objects to your eye through multiple mirror reflections. When you look in a mirror, you see virtual images that appear to exist in "virtual rooms" behind the mirror surface.</p>
+        
+        <p><strong>The Physics:</strong> Light from the object bounces off mirrors following the law of reflection (<strong>angle of incidence equals angle of reflection</strong>) before reaching your eye. Your brain interprets this light as coming from a straight line, creating a virtual image. The virtual object appears to be located at a distance equal to the total length of the actual bouncing light path - demonstrating how our perception of distance is directly tied to the path light travels.</p>
+        
+        <p>Both rays shown connect the same points but reveal different aspects of reflection: the dotted line shows where you <em>perceive</em> the object to be, while the solid line shows where the light <em>actually</em> traveled.</p>
+      </div>
+      
+      <div class="columns">
+        <div class="column">
+          <h4>What you're seeing:</h4>
+          <ul>
+            <li><strong>Dotted line:</strong> Your line of sight to the virtual image</li>
+            <li><strong>Solid line:</strong> The actual path light takes, bouncing off room walls to reach you</li>
+            <li><strong>Shapes:</strong> Triangle (object) and circle (your eye/receptor)</li>
+          </ul>
+        </div>
+        
+        <div class="column">
+          <h4>Interactive controls:</h4>
+          <ul>
+            <li>Click the <strong>HOME</strong> button to choose which room contains the object and receptor</li>
+            <li>Click the <strong>TARGET</strong> button to select which virtual room you're looking at</li>
+            <li>Drag the triangle and circle within the home room to see how reflections change</li>
+            <li>Notice how both rays always connect the same points, revealing the geometry of reflection</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    
     <div id="canvas-container"></div>
     <script type="module" src="/src/main.ts"></script>
   </body>

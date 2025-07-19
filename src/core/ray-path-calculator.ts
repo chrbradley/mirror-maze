@@ -11,6 +11,7 @@ import { TargetRoomManager } from './target-room-manager'
 import { EntityManager } from './entities'
 import { MirrorManager } from './mirrors'
 import { traceRayInRoom, type RaySegment } from './simple-ray-tracer'
+import { calculateMirrorSequence } from './mirror-sequence-calculator'
 
 export class RayPathCalculator {
   constructor(
@@ -56,14 +57,11 @@ export class RayPathCalculator {
       return null
     }
     
-    // Get home room and its active mirrors
+    // Get home and target rooms
     const homeRoom = this.homeRoomManager.getCurrentHomeRoom()
-    const homeMirrors = this.mirrorManager.getMirrors().filter(m =>
-      m.room.row === homeRoom.row && m.room.col === homeRoom.col
-    )
+    const targetRoom = this.targetRoomManager.getCurrentTargetRoom()
     
     // Get entity positions in their local room coordinates
-    // (already in the correct space for ray tracing)
     const objectLocalPos = object.position
     const receptorLocalPos = receptor.position
     
@@ -71,19 +69,27 @@ export class RayPathCalculator {
     const flipX = isRoomFlippedX(homeRoom.col)
     const flipY = isRoomFlippedY(homeRoom.row)
     
-    // Trace ray within the room
-    const segments = traceRayInRoom(objectLocalPos, receptorLocalPos, homeMirrors, 5, flipX, flipY)
+    // Apply mirroring to positions before ray tracing
+    const mirroredObjectPos = getMirroredRoomPoint(homeRoom, objectLocalPos)
+    const mirroredReceptorPos = getMirroredRoomPoint(homeRoom, receptorLocalPos)
+    
+    let segments: RaySegment[] = []
+    
+    // Calculate mirror sequence needed to reach target room
+    const mirrorSequence = calculateMirrorSequence(homeRoom, targetRoom)
+    
+    // Always use simple ray tracing for single room
+    const homeMirrors = this.mirrorManager.getMirrors().filter(m =>
+      m.room.row === homeRoom.row && m.room.col === homeRoom.col
+    )
+    segments = traceRayInRoom(mirroredObjectPos, mirroredReceptorPos, homeMirrors, 5, flipX, flipY)
     
     // Convert to canvas coordinates for rendering
-    const homeRoomMirrored = getMirroredRoomPoint(homeRoom, { x: 0, y: 0 })
-    const canvasSegments = segments.map(segment => {
-      // Apply mirroring to match rendered positions
-      const mirroredStart = getMirroredRoomPoint(homeRoom, segment.start)
-      const mirroredEnd = getMirroredRoomPoint(homeRoom, segment.end)
-      
+    const canvasSegments = segments.map((segment, index) => {
+      // Don't apply mirroring again - segments are already in mirrored coordinates
       return {
-        start: roomToCanvas(homeRoom, mirroredStart),
-        end: roomToCanvas(homeRoom, mirroredEnd)
+        start: roomToCanvas(homeRoom, segment.start),
+        end: roomToCanvas(homeRoom, segment.end)
       }
     })
     
